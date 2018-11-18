@@ -46,17 +46,21 @@ parameters <-
       )
   )
 
-result_prev <- 
-  tibble(
-    store = character(nrow(parameters)),
-    product = character(nrow(parameters)),
-    value = numeric(nrow(parameters))
-  )
+# result_prev <- 
+#   tibble(
+#     store = character(nrow(parameters)),
+#     product = character(nrow(parameters)),
+#     value = numeric(nrow(parameters))
+#   )
+
+result_all <- readRDS('result.rds')
+result_prev <- tail(result_all, nrow(parameters))
 
 while(today() <= as_date('2018-11-24')) {
   
   server$open(silent = T)
   
+  timestamp()
   message('Coletando...')
   
   result <- 
@@ -86,18 +90,23 @@ while(today() <= as_date('2018-11-24')) {
   
   server$close()
   
+  message('Conluido.')
+  
   result$diff <- result$value - result_prev$value
+  result_all <- rbind(result_all, result %>% add_column(date = now()))
+  saveRDS(result_all, 'result.rds')
+  
   if (any(result$diff != 0)) {
     if (any(result$diff < 0)) {
       message('\nREDUÇÃO DE PREÇO!!!\nREDUÇÃO DE PREÇO!!!\nREDUÇÃO DE PREÇO!!!\n')
     }
     if (any(result$diff > 0))
-      message('Aumento de preço!')
+      message('Aumento de preço.')
   } else {
     message('Nenhuma alteração nos preços.')
   }
   print(result)
   result_prev <- result
   message('Aguardando...')
-  Sys.sleep(30 * 60)
+  Sys.sleep(15 * 60)
 }
